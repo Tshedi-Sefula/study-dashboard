@@ -3,7 +3,7 @@ import pytest
 from datetime import date
 import crud
 import models
-from database import SessionLocal
+from database import SessionRemote
 
 # use a test date to test the min_last_changed_date
 test_date = date(2025, 1, 1)
@@ -11,7 +11,7 @@ test_date = date(2025, 1, 1)
 @pytest.fixture(scope="function")
 def db_session():
     """Starts a database session and closes it when done"""
-    session = SessionLocal()
+    session = SessionRemote()
     yield session
     session.close()
 
@@ -31,10 +31,9 @@ def test_get_groups(db_session):
     assert len(groups) == 1  # brief specifies 1 study group in seed data
 
 def test_get_groups_by_name(db_session):
-    """Tests filtering study groups by name"""
-    groups = crud.get_groups(db_session, group_name="Group A")  # update to match your seed data
+    groups = crud.get_groups(db_session, group_name="Algebra Fundamentals")
     assert len(groups) == 1
-    assert groups[0].group_name == "Group A"
+    assert groups[0].group_name == "Algebra Fundamentals"
 
 def test_get_groups_by_min_date(db_session):
     """Tests filtering study groups by min last changed date"""
@@ -47,27 +46,27 @@ def test_get_groups_by_min_date(db_session):
 # Student tests
 # ─────────────────────────────────────────────
 
-def test_get_student(db_session):
-    """Tests you can get a single student by student_id"""
-    student = crud.get_student(db_session, student_id="u00000001")  # update to match your seed data
-    assert student.student_id == "u00000001"
 
 def test_get_students(db_session):
     """Tests that the count of students is what is expected"""
     students = crud.get_students(db_session, skip=0, limit=100)
     assert len(students) == 5  # brief specifies 5 students in seed data
 
+def test_get_student(db_session):
+    student = crud.get_student(db_session, student_id="u10000001")
+    assert student.student_id == "u10000001"
+
 def test_get_students_by_first_name(db_session):
-    """Tests filtering students by first name"""
-    students = crud.get_students(db_session, first_name="Jane")  # update to match your seed data
+    students = crud.get_students(db_session, first_name="Amara")
     assert len(students) == 1
-    assert students[0].fname == "Jane"
+    assert students[0].fname == "Amara"
 
 def test_get_students_by_last_name(db_session):
-    """Tests filtering students by last name"""
-    students = crud.get_students(db_session, last_name="Doe")  # update to match your seed data
+    students = crud.get_students(db_session, last_name="Nkosi")
     assert len(students) >= 1
-    assert students[0].lname == "Doe"
+    assert students[0].lname == "Nkosi"
+
+
 
 def test_get_students_by_date(db_session):
     """Tests filtering students by min last changed date"""
