@@ -3,9 +3,14 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import date, datetime 
+import os
 
 import crud, schemas
 from database import SessionRemote
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_KEY= os.getenv("API_KEY")
 api_key_header= APIKeyHeader(name="X-API-Key")
@@ -63,10 +68,11 @@ def get_activities(
 
 @app.get("/groups/{group_id}/stats", response_model=schemas.GroupStats)
 def get_stats(group_id: int, db: Session = Depends(get_db)):
-    group = crud.get_group(db, group_id=group_id)
+    group = crud.get_student_stats_by_group(db, group_id)
+    #crud.get_group(db, group_id=group_id)
     if group is None:
         raise HTTPException(status_code=404, detail="Unknown student/group")
-    return crud.get_group_stats(db, group_id=group_id)
+    return group
 
 @app.post("/students/{student_id}/activities", response_model=schemas.Activity, status_code=201)
 def post_activity(

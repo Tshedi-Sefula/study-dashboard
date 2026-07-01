@@ -47,9 +47,9 @@ def get_groups(db: Session, skip: int = 0, limit: int = 100,
         query = query.filter(models.StudyGroup.last_changed >= min_last_changed_date)
     if max_last_changed_date:
         query = query.filter(models.StudyGroup.last_changed <= max_last_changed_date)
-    if group_name:
+    if id is not None:
         query = query.filter(models.StudyGroup.id == id)
-    if id:
+    if group_name:
         query = query.filter(models.StudyGroup.group_name == group_name)
 
     return query.offset(skip).limit(limit).all()
@@ -144,3 +144,35 @@ def create_activity(db: Session, student_id: str, activity: schemas.ActivityCrea
     db.commit()
     db.refresh(db_activity)
     return db_activity
+
+
+def get_student_stats_by_group(db: Session, group_id: int):
+    students = (
+        db.query(models.Student)
+        .filter(models.Student.study_group_id == group_id)
+        .all()
+    )
+
+    results = []
+
+    for s in students:
+        total = get_activity_count(db, student_id=s.student_id)
+
+        avg = get_average_score(db, student_id=s.student_id)
+
+        last = (
+            db.query(func.max(models.Activity.last_changed))
+            .filter(models.Activity.student_id == s.student_id)
+            .scalar()
+        )
+
+        results.append({
+            "student_id": s.student_id,
+            "fname": s.fname,
+            "lname": s.lname,
+            "total_activities": total,
+            "avg_quiz_score": avg,
+            "last_active": last,
+        })
+
+    return results
