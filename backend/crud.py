@@ -37,7 +37,9 @@ def get_group(db: Session, group_id: int = None):
 def get_groups(db: Session, skip: int = 0, limit: int = 100,
                min_last_changed_date: date = None,
                max_last_changed_date: date = None,
-               group_name: Text = None):
+               group_name: Text = None,
+               id: int=None
+               ):
     query = db.query(models.StudyGroup
                      ).options(joinedload(models.StudyGroup.students))
     if min_last_changed_date:
@@ -45,6 +47,8 @@ def get_groups(db: Session, skip: int = 0, limit: int = 100,
     if max_last_changed_date:
         query = query.filter(models.StudyGroup.last_changed <= max_last_changed_date)
     if group_name:
+        query = query.filter(models.StudyGroup.id == id)
+    if id:
         query = query.filter(models.StudyGroup.group_name == group_name)
 
     return query.offset(skip).limit(limit).all()
@@ -56,6 +60,7 @@ def get_activity(db: Session, id: int = None):
 
 # note, one can get all activities in general or all Id's belonging to a student
 def get_activities(db: Session, student_id: Text = None, skip: int = 0, limit: int = 100,
+                    student_id:Text = None,
                    min_last_changed_date: date = None,
                    max_last_changed_date: date = None,
                    score: int = None,
