@@ -1,5 +1,5 @@
 '''Pydantic schemas'''
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import List, Optional
 from datetime import date, datetime
 import enum
@@ -20,6 +20,14 @@ class ActivityBase(BaseModel):
     score: Optional[int] = Field(default=None, ge=0, le=100)
     last_changed: date
     created_at: datetime
+
+    @model_validator(mode="after")
+    def check_score_matches_type(self):
+        if self.activity_type == ActivityType.quiz_attempted and self.score is None:
+            raise ValueError("score is required for quiz_attempted")
+        if self.activity_type != ActivityType.quiz_attempted and self.score is not None:
+            raise ValueError("score must be null for non-quiz activities")
+        return self
 
 
 class Activity(ActivityBase):
@@ -44,7 +52,7 @@ class StudentBase(BaseModel):
 
 class Student(StudentBase):
     model_config = ConfigDict(from_attributes=True)
-    activities: List[ActivityBase] = []
+    activities: List[Activity] = []
 
 
 class StudyGroupBase(BaseModel):

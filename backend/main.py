@@ -1,12 +1,21 @@
 ''' FastAPI program '''
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Security
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import date, datetime 
 
 import crud, schemas
 from database import SessionRemote
 
-app = FastAPI() # create the object
+API_KEY= os.getenv("API_KEY")
+api_key_header= APIKeyHeader(name="X-API-Key")
+
+def verify_api_key(key: str = Security(api_key_header)):
+    if key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return key
+
+app = FastAPI(dependencies=[Depends(verify_api_key)]) # create the object
 
 # Dependency
 def get_db():
