@@ -1,5 +1,5 @@
 '''Pydantic schemas'''
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import date, datetime
 import enum
@@ -24,6 +24,13 @@ class ActivityBase(BaseModel):
 
 class Activity(ActivityBase):
     model_config = ConfigDict(from_attributes=True)
+    
+class ActivityCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    activity_type: ActivityType
+    score: Optional[int] = Field(default=None, ge=0, le=100)
+    last_changed: date
 
 
 class StudentBase(BaseModel):
@@ -56,3 +63,11 @@ class Counts(BaseModel):
     group_count: int
     student_count: int
     activity_count: int
+
+
+class GroupStats(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    group_id: int
+    total_activities: int
+    average_quiz_score: Optional[float] = None

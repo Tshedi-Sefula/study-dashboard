@@ -4,6 +4,7 @@ import enum
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
 from datetime import date
+from sqlalchemy import func
 import models
 
 
@@ -60,7 +61,6 @@ def get_activity(db: Session, id: int = None):
 
 # note, one can get all activities in general or all Id's belonging to a student
 def get_activities(db: Session, student_id: Text = None, skip: int = 0, limit: int = 100,
-                    student_id:Text = None,
                    min_last_changed_date: date = None,
                    max_last_changed_date: date = None,
                    score: int = None,
@@ -79,7 +79,8 @@ def get_activities(db: Session, student_id: Text = None, skip: int = 0, limit: i
     if student_id:
         query = query.filter(models.Activity.student_id == student_id)
 
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(models.Activity.created_at.desc()).offset(skip).limit(limit).all()
+
 
 # analytics queries
 def get_student_count(db: Session):
@@ -92,11 +93,54 @@ def get_group_count(db: Session):
    return query.count()
 
 
-def get_activity_count(db: Session, student_id: Text=None):
+def get_activity_count(db: Session, student_id: Text=None, activity: models.ActivityType=None):
    query = db.query(models.Activity
                      ).options(joinedload(models.Activity.student))
    if student_id:
-        query = query.filter(models.Activity.student_id == student_id)
+        query = query.filter(models.Activity.student_id == student_id, )
+   if activity:
+        query = query.filter(models.Activity.activity_type==activity,)
 
    return query.count()
+   
 
+def get_average_score(db: Session, student_id: str = None):
+    query = db.query(func.avg(models.Activity.score)).filter(
+        models.Activity.activity_type == ActivityType.quiz_attempted
+    )
+    if student_id:
+        query = query.filter(models.Activity.student_id == student_id)
+    
+    result = query.scalar()  # scalar() returns a single value, not a list
+    return round(result, 2) if result is not None else None
+
+def get_group_stats(db: Session, group_id: int):
+    total = db.query(func.count(models.Activity.id))\
+        .join(models.Student)\
+        .filter(models.Student.study_group_id == group_id)\
+        .scalar()
+
+    avg = db.query(func.avg(models.Activity.score))\
+        .join(models.Student)\
+        .filter(
+            models.Student.study_group_id == group_id,
+            models.Activity.activity_type == models.ActivityType.quiz_attempted
+        ).scalar()
+
+    return {
+        "group_id": group_id,
+        "total_activities": total or 0,
+        "average_quiz_score": round(avg, 2) if avg else None
+    }
+
+def create_activity(db: Session, student_id: str, activity: schemas.ActivityCreate):
+    db_activity = models.Activity(
+        student_id=student_id,
+        activity_type=activity.activity_type,
+        score=activity.score,
+        last_changed=activity.last_changed,
+    )
+    db.add(db_activity)
+    db.commit()
+    db.refresh(db_activity)
+    return db_activity
